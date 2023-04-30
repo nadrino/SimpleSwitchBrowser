@@ -3,6 +3,7 @@
 //
 
 // submodules
+#include "Logger.h"
 #include "borealis.hpp"
 
 // nxlib
@@ -12,11 +13,20 @@
 #include "cstdlib"
 
 
+LoggerInit([]{
+  Logger::setUserHeaderStr("[SimpleSwitchBrowser.nro]");
+});
+
+
 int main( int argc, char* argv[] ){
-  nsInitialize();
+  LogInfo << "SimpleSwitchBrowser is starting..." << std::endl;
+
+  LogThrowIf(R_FAILED(nsInitialize()), "nsInitialize Failed");
+
+  brls::Logger::setLogLevel(brls::LogLevel::ERROR);
 
   brls::i18n::loadTranslations("en-US");
-  brls::Application::init("SimpleSwitchBrowser");
+  LogThrowIf(not brls::Application::init("SimpleSwitchBrowser"), "Unable to init Borealis application");
 
   while(brls::Application::mainLoop()){
     // brls handles inputs. Nothing to do here
