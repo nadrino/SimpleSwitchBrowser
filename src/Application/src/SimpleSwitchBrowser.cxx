@@ -36,6 +36,9 @@ int main( int argc, char* argv[] ){
   auto* mainFrame = new MainFrame();
   brls::Application::pushView( mainFrame );
 
+  // disable + as quit
+  mainFrame->registerAction("", brls::Key::PLUS, []{return true;}, true);
+
 
   while(brls::Application::mainLoop()){
     // brls handles inputs. Nothing to do here

@@ -17,10 +17,12 @@ MainFrame::MainFrame() {
 
   this->setTitle("SimpleSwitchBrowser");
   this->setFooterText( "v0.0.1" );
-  this->setIcon("romfs:/images/icon.jpg");
+  this->setIcon("romfs:/images/icon_corner.png");
 
 
-  this->registerAction("", brls::Key::PLUS, []{return true;}, true);
+
+
+
   this->updateActionHint(brls::Key::PLUS, ""); // make the change visible
 
   LogInfo << "MainFrame built." << std::endl;
