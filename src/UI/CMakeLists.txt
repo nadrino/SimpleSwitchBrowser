@@ -2,7 +2,8 @@
 
 set( LIB_NAME "UI" )
 set( SRC_FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/MainFrame.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/FrameMain.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/TabAbout.cpp
     )
 
 add_library( ${LIB_NAME} STATIC ${SRC_FILES} )

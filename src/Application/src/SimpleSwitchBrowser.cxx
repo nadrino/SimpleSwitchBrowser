@@ -4,7 +4,7 @@
 
 
 // this project
-#include "MainFrame.h"
+#include "FrameMain.h"
 
 // submodules
 #include "Logger.h"
@@ -33,11 +33,13 @@ int main( int argc, char* argv[] ){
   LogThrowIf(not brls::Application::init("SimpleSwitchBrowser"), "Unable to init Borealis application");
 
 
-  auto* mainFrame = new MainFrame();
+  auto* mainFrame = new FrameMain();
   brls::Application::pushView( mainFrame );
 
+  // these options have to be put after pushView
   // disable + as quit
   mainFrame->registerAction("", brls::Key::PLUS, []{return true;}, true);
+  mainFrame->updateActionHint(brls::Key::PLUS, ""); // make the change visible
 
 
   while(brls::Application::mainLoop()){
