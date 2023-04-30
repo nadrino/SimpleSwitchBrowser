@@ -1,0 +1,8 @@
+# Ignored files
+external
+cmake-build-release
+build
+
+# Don't track IDE caches
+.vscode
+.idea
