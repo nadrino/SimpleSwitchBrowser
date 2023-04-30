@@ -12,13 +12,16 @@ list( APPEND CMAKE_MODULE_PATH
 include(utils)
 include(options)
 include(devkita64-libnx)
-include(nx-utils)
 
+# to build NRO
+include(nx-utils)
 
 # submodules
 include( borealisLib )
 
 
+# This project
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/src )
 
 
 

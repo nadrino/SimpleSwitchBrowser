@@ -8,6 +8,8 @@ if (NOT LIBNX_FOUND)
   cmake_panic("Unable to detect libnx on this system.")
 endif ()
 
+include_directories( "${PORTLIBS}/include" )
+
 
 set( SUBMODULES_DIR ${CMAKE_SOURCE_DIR}/submodules )
 
@@ -52,8 +54,6 @@ target_link_libraries( Borealis PUBLIC
     switch::libnx
     -L/opt/devkitpro/portlibs/switch/lib
     -L/opt/devkitpro/libnx/lib
-    ${ZLIB_LIBRARIES}
-    ${FREETYPE_LIBRARIES}
     -lglfw3 -lEGL -lglad -lglapi -ldrm_nouveau -lm -lnx
     )
 

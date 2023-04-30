@@ -150,7 +150,7 @@ function(add_nro_target target)
         add_nacp(${target}.nacp)
     endif ()
 
-    add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${target}.nro
+    add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${target}.pre.nro
             COMMAND ${__NRO_COMMAND}
             DEPENDS ${target}.elf ${CMAKE_CURRENT_BINARY_DIR}/${target}.nacp
             VERBATIM)
@@ -158,7 +158,7 @@ function(add_nro_target target)
     if (CMAKE_RUNTIME_OUTPUT_DIRECTORY)
         add_custom_target(${target}.nro ALL SOURCES ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${target}.nro)
     else ()
-        add_custom_target(${target}.nro ALL SOURCES ${CMAKE_CURRENT_BINARY_DIR}/${target}.nro)
+        add_custom_target(${target}.nro ALL SOURCES ${CMAKE_CURRENT_BINARY_DIR}/${target}.pre.nro)
     endif ()
 endfunction()
 
