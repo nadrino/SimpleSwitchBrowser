@@ -57,8 +57,11 @@ void TabBrowser::ls(){
   std::string cwd{this->getCwd()};
   std::vector<brls::ListItem*> itemList;
 
+  LogDebug << "looking in " << cwd << std::endl;
+
   {
     auto foldersList = GenericToolbox::getListOfSubFoldersInFolder( cwd );
+    LogDebug << GenericToolbox::parseVectorAsString(foldersList) << std::endl;
     GenericToolbox::sortVector(foldersList, [](const std::string &a_, const std::string &b_) {
       if( a_.empty() ) return false;
       if( b_.empty() ) return true;
@@ -93,6 +96,7 @@ void TabBrowser::ls(){
 
   {
     auto fileList = GenericToolbox::getListOfFilesInFolder( cwd );
+    LogDebug << GenericToolbox::parseVectorAsString(fileList) << std::endl;
     GenericToolbox::sortVector(fileList, [](const std::string &a_, const std::string &b_) {
       if( a_.empty() ) return false;
       if( b_.empty() ) return true;
@@ -116,6 +120,22 @@ void TabBrowser::ls(){
       this->addView(item);
       itemList.emplace_back(item);
     }
+  }
+
+  if( itemList.empty() ){
+    auto *item = new brls::ListItem("IO error or empty", "", "");
+    item->setHeight(50);
+
+    if( not _walkPath_.empty() ){
+      item->registerAction("Back", brls::Key::B, [this]{
+        std::scoped_lock<std::mutex> g(_mutex_);
+        this->setRequestedCd( "../" );
+        return true;
+      });
+    }
+
+    this->addView(item);
+    itemList.emplace_back(item);
   }
 
   brls::Application::giveFocus( itemList[0] );
