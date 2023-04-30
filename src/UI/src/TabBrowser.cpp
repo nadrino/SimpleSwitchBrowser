@@ -22,6 +22,10 @@ TabBrowser::TabBrowser(FrameMain* owner_) : brls::List(), _owner_(owner_) {
   this->ls();
 
 }
+TabBrowser::~TabBrowser() {
+  // make sure brls don't try to delete already deleted ptrs
+  this->clear( false );
+}
 
 void TabBrowser::draw(NVGcontext *vg, int x, int y, unsigned int width, unsigned int height, brls::Style *style,
                          brls::FrameContext *ctx) {
@@ -55,8 +59,6 @@ void TabBrowser::cd( const std::string& folder_ ){
 }
 void TabBrowser::ls(){
   this->clear( false );
-  LogDebug << "clear list..." << std::endl;
-  for( auto& entry : _entryList_ ){ delete entry.item; }
   _entryList_.clear();
 
   std::string cwd{this->getCwd()};
@@ -71,7 +73,7 @@ void TabBrowser::ls(){
 
     _entryList_.back().name = folder;
     _entryList_.back().isDir = true;
-    _entryList_.back().item = new brls::ListItem("\uE2C7 " + folder);
+    _entryList_.back().item = std::make_shared<brls::ListItem>("\uE2C7 " + folder);
     _entryList_.back().item->setHeight( 50 );
 
     auto folderCopy{folder};
@@ -97,7 +99,7 @@ void TabBrowser::ls(){
 
     _entryList_.back().name = file;
     _entryList_.back().isDir = false;
-    _entryList_.back().item = new brls::ListItem(file);
+    _entryList_.back().item = std::make_shared<brls::ListItem>(file);
     _entryList_.back().item->setHeight( 50 );
 
     if( not _walkPath_.empty() ){
@@ -111,7 +113,7 @@ void TabBrowser::ls(){
 
   if( _entryList_.empty() ){
     _entryList_.emplace_back();
-    _entryList_.back().item = new brls::ListItem("IO error or empty");
+    _entryList_.back().item = std::make_shared<brls::ListItem>("IO error or empty");
     _entryList_.back().item->setHeight( 50 );
 
     if( not _walkPath_.empty() ){
@@ -126,10 +128,10 @@ void TabBrowser::ls(){
   TabBrowser::sortEntries( _entryList_ );
 
   for( auto& entry : _entryList_ ){
-    this->addView( entry.item );
+    this->addView( entry.item.get() );
   }
 
-  brls::Application::giveFocus( _entryList_[0].item );
+  brls::Application::giveFocus( _entryList_[0].item.get() );
 }
 
 std::string TabBrowser::getCwd() const{
@@ -152,3 +154,4 @@ void TabBrowser::sortEntries(std::vector<DirEntry>& entryList_){
     return GenericToolbox::toLowerCase(a_.name) < GenericToolbox::toLowerCase(b_.name);
   });
 }
+
