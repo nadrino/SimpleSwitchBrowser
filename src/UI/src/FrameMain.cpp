@@ -4,6 +4,7 @@
 
 #include "FrameMain.h"
 #include "TabAbout.h"
+#include "TabBrowser.h"
 
 #include "Logger.h"
 
@@ -14,17 +15,16 @@ LoggerInit([]{
 });
 
 FrameMain::FrameMain() {
-  LogWarning << "Build MainFrame..." << std::endl;
+  LogWarning << "Building FrameMain" << std::endl;
 
   this->setTitle("SimpleSwitchBrowser");
   this->setFooterText( "v0.0.1" );
   this->setIcon("romfs:/images/icon_corner.png");
 
 
+  this->addTab( "Browser", new TabBrowser() );
+  this->addSeparator();
   this->addTab( "About", new TabAbout() );
-
-
-  LogInfo << "MainFrame built." << std::endl;
 }
 
 bool FrameMain::onCancel() {

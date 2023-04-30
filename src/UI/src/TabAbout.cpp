@@ -14,7 +14,7 @@ LoggerInit([]{
 });
 
 TabAbout::TabAbout() {
-  LogWarning << "Building about tab..." << std::endl;
+  LogWarning << "Building TabAbout" << std::endl;
 
   // Subtitle
   auto* shortDescription = new brls::Label(
@@ -82,6 +82,4 @@ TabAbout::TabAbout() {
     true
   );
   this->addView(links);
-
-  LogInfo << "About tab built." << std::endl;
 }
