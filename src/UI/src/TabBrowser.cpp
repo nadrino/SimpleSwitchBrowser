@@ -44,15 +44,18 @@ void TabBrowser::draw(NVGcontext *vg, int x, int y, unsigned int width, unsigned
 
 void TabBrowser::cd( const std::string& folder_ ){
   if( folder_.empty() ){
+    _walkFocus_.resize(1, 0);
     _walkPath_.clear();
   }
   else if( folder_ == "../" ){
+    _walkFocus_.pop_back();
     _walkPath_.pop_back();
   }
   else{
-    _walkPath_.emplace_back(folder_);
+    _walkFocus_.back() = GenericToolbox::findElementIndex(folder_, _entryList_, [](const DirEntry& e){ return e.name; });
+    _walkFocus_.emplace_back( 0 );
+    _walkPath_.emplace_back( folder_ );
   }
-
 
   if( _walkPath_.empty() ){ _owner_->setTitle( "SimpleSwitchBrowser" ); }
   else{ _owner_->setTitle( this->getCwd() ); }
@@ -131,7 +134,12 @@ void TabBrowser::ls(){
     this->addView( entry.item.get() );
   }
 
-  brls::Application::giveFocus( _entryList_[0].item.get() );
+  brls::Application::giveFocus( _entryList_[_walkFocus_.back()].item.get() );
+//  if( _walkFocus_.size() > 1 ){
+//  }
+//  else{
+//    brls::Application::giveFocus( _entryList_[0].item.get() );
+//  }
 }
 
 std::string TabBrowser::getCwd() const{

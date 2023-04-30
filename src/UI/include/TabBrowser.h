@@ -26,7 +26,6 @@ class TabBrowser : public brls::List {
 
 public:
   explicit TabBrowser(FrameMain* owner_);
-
   ~TabBrowser() override;
 
   void setRequestedCd(const std::string &requestedCd);
@@ -39,6 +38,7 @@ public:
   // overrides
   void draw(NVGcontext* vg, int x, int y, unsigned width, unsigned height, brls::Style* style, brls::FrameContext* ctx) override;
 
+  // statics
   static void sortEntries(std::vector<DirEntry>& entryList_);
 
 private:
@@ -47,6 +47,7 @@ private:
   std::mutex _mutex_;
   std::string _requestedCd_;
   std::vector<std::string> _walkPath_;
+  std::vector<int> _walkFocus_{};
 
   std::vector<DirEntry> _entryList_;
 
