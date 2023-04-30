@@ -42,7 +42,7 @@ int main( int argc, char* argv[] ){
 //  mainFrame->updateActionHint(brls::Key::PLUS, ""); // make the change visible
 
 
-  while(brls::Application::mainLoop()){
+  while( brls::Application::mainLoop() ){
     // brls handles inputs. Nothing to do here
   }
 

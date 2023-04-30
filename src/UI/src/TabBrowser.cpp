@@ -30,7 +30,7 @@ TabBrowser::~TabBrowser() {
 void TabBrowser::draw(NVGcontext *vg, int x, int y, unsigned int width, unsigned int height, brls::Style *style,
                          brls::FrameContext *ctx) {
 
-  if( not _requestedCd_.empty() ){
+  if( not _requestedCd_.empty() and not brls::Application::hasViewDisappearing() ){
     std::scoped_lock<std::mutex> g(_mutex_);
     LogTrace << "Updating list..." << std::endl;
     this->cd( _requestedCd_ );
@@ -46,6 +46,9 @@ void TabBrowser::cd( const std::string& folder_ ){
   if( folder_.empty() ){
     _walkFocus_.resize(1, 0);
     _walkPath_.clear();
+  }
+  else if( folder_ == "./" ){
+    _walkFocus_.back() = GenericToolbox::findElementIndex(brls::Application::getCurrentFocus(), _entryList_, [](const DirEntry& e){ return e.item.get(); });
   }
   else if( folder_ == "../" ){
     _walkFocus_.pop_back();
@@ -112,6 +115,25 @@ void TabBrowser::ls(){
         return true;
       });
     }
+
+    std::string fileName{_entryList_.back().name};
+    _entryList_.back().item->registerAction("Delete", brls::Key::X, [this, fileName]{
+
+      auto* dialog = new brls::Dialog("Do you want to remove \"" + fileName + "\" ?");
+      dialog->addButton("Yes", [this, dialog, fileName](brls::View* view) {
+        dialog->close();
+        LogAlert << "Deleting: " << fileName << std::endl;
+        if( _walkPath_.empty() ) GenericToolbox::deleteFile( "/" + fileName );
+        else GenericToolbox::deleteFile( this->getCwd() + "/" + fileName );
+        std::scoped_lock<std::mutex> g(_mutex_);
+        this->setRequestedCd( "./" );
+      });
+      dialog->addButton("No", [dialog](brls::View* view) { dialog->close(); });
+
+      dialog->setCancelable(true);
+      dialog->open();
+      return true;
+    });
   }
 
   if( _entryList_.empty() ){
@@ -134,12 +156,9 @@ void TabBrowser::ls(){
     this->addView( entry.item.get() );
   }
 
-  brls::Application::giveFocus( _entryList_[_walkFocus_.back()].item.get() );
-//  if( _walkFocus_.size() > 1 ){
-//  }
-//  else{
-//    brls::Application::giveFocus( _entryList_[0].item.get() );
-//  }
+  int focusIndex{_walkFocus_.back()};
+  while( focusIndex >= int(_entryList_.size()) ){ focusIndex--; }
+  brls::Application::giveFocus( _entryList_[focusIndex].item.get() );
 }
 
 std::string TabBrowser::getCwd() const{
