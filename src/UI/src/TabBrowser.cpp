@@ -28,8 +28,10 @@ void TabBrowser::draw(NVGcontext *vg, int x, int y, unsigned int width, unsigned
 
   if( not _requestedCd_.empty() ){
     std::scoped_lock<std::mutex> g(_mutex_);
+    LogTrace << "Updating list..." << std::endl;
     this->cd( _requestedCd_ );
     this->ls();
+    this->onWindowSizeChanged();
     _requestedCd_.clear();
   }
 
@@ -52,94 +54,82 @@ void TabBrowser::cd( const std::string& folder_ ){
   else{ _owner_->setTitle( this->getCwd() ); }
 }
 void TabBrowser::ls(){
-  this->clear();
+  this->clear( false );
+  LogDebug << "clear list..." << std::endl;
+  for( auto& entry : _entryList_ ){ delete entry.item; }
+  _entryList_.clear();
 
   std::string cwd{this->getCwd()};
-  std::vector<brls::ListItem*> itemList;
 
   LogDebug << "looking in " << cwd << std::endl;
 
-  {
-    auto foldersList = GenericToolbox::getListOfSubFoldersInFolder( cwd );
-    LogDebug << GenericToolbox::parseVectorAsString(foldersList) << std::endl;
-    GenericToolbox::sortVector(foldersList, [](const std::string &a_, const std::string &b_) {
-      if( a_.empty() ) return false;
-      if( b_.empty() ) return true;
-      if( a_[0] != '.' and b_[0] == '.') return true;
-      if( b_[0] != '.' and a_[0] == '.') return false;
-      return GenericToolbox::toLowerCase(a_) < GenericToolbox::toLowerCase(b_);
+  auto foldersList = GenericToolbox::getListOfSubFoldersInFolder( cwd );
+  LogDebug << "folders: " << GenericToolbox::parseVectorAsString(foldersList) << std::endl;
+  _entryList_.reserve(foldersList.size() );
+  for (auto &folder: foldersList) {
+    _entryList_.emplace_back();
+
+    _entryList_.back().name = folder;
+    _entryList_.back().isDir = true;
+    _entryList_.back().item = new brls::ListItem("\uE2C7 " + folder);
+    _entryList_.back().item->setHeight( 50 );
+
+    auto folderCopy{folder};
+    _entryList_.back().item->getClickEvent()->subscribe([this, folderCopy](brls::View*){
+      this->setRequestedCd( folderCopy );
+      return true;
     });
-
-    for (auto &folder: foldersList) {
-
-      auto *item = new brls::ListItem("\uE2C7 " + folder, "", "");
-      item->setHeight(50);
-
-      auto folderCopy{folder};
-      item->getClickEvent()->subscribe([this, folderCopy](brls::View*){
-        this->setRequestedCd( folderCopy );
-        return true;
-      });
-      item->updateActionHint(brls::Key::A, "Enter");
-
-      if( not _walkPath_.empty() ){
-        item->registerAction("Back", brls::Key::B, [this]{
-          this->setRequestedCd( "../" );
-          return true;
-        });
-      }
-
-      this->addView(item);
-      itemList.emplace_back(item);
-    }
-  }
-
-  {
-    auto fileList = GenericToolbox::getListOfFilesInFolder( cwd );
-    LogDebug << GenericToolbox::parseVectorAsString(fileList) << std::endl;
-    GenericToolbox::sortVector(fileList, [](const std::string &a_, const std::string &b_) {
-      if( a_.empty() ) return false;
-      if( b_.empty() ) return true;
-      if( a_[0] != '.' and b_[0] == '.') return true;
-      if( b_[0] != '.' and a_[0] == '.') return false;
-      return GenericToolbox::toLowerCase(a_) < GenericToolbox::toLowerCase(b_);
-    });
-
-    for (auto &file: fileList) {
-      auto *item = new brls::ListItem(file, "", "");
-      item->setHeight(50);
-
-      if( not _walkPath_.empty() ){
-        item->registerAction("Back", brls::Key::B, [this]{
-          std::scoped_lock<std::mutex> g(_mutex_);
-          this->setRequestedCd( "../" );
-          return true;
-        });
-      }
-
-      this->addView(item);
-      itemList.emplace_back(item);
-    }
-  }
-
-  if( itemList.empty() ){
-    auto *item = new brls::ListItem("IO error or empty", "", "");
-    item->setHeight(50);
+    _entryList_.back().item->updateActionHint(brls::Key::A, "Enter");
 
     if( not _walkPath_.empty() ){
-      item->registerAction("Back", brls::Key::B, [this]{
+      _entryList_.back().item->registerAction("Back", brls::Key::B, [this]{
+        this->setRequestedCd( "../" );
+        return true;
+      });
+    }
+  }
+
+
+  auto fileList = GenericToolbox::getListOfFilesInFolder( cwd );
+  LogDebug << "fileList: " << GenericToolbox::parseVectorAsString(fileList) << std::endl;
+  for (auto &file: fileList) {
+    _entryList_.emplace_back();
+
+    _entryList_.back().name = file;
+    _entryList_.back().isDir = false;
+    _entryList_.back().item = new brls::ListItem(file);
+    _entryList_.back().item->setHeight( 50 );
+
+    if( not _walkPath_.empty() ){
+      _entryList_.back().item->registerAction("Back", brls::Key::B, [this]{
         std::scoped_lock<std::mutex> g(_mutex_);
         this->setRequestedCd( "../" );
         return true;
       });
     }
-
-    this->addView(item);
-    itemList.emplace_back(item);
   }
 
-  brls::Application::giveFocus( itemList[0] );
-  this->onWindowSizeChanged();
+  if( _entryList_.empty() ){
+    _entryList_.emplace_back();
+    _entryList_.back().item = new brls::ListItem("IO error or empty");
+    _entryList_.back().item->setHeight( 50 );
+
+    if( not _walkPath_.empty() ){
+      _entryList_.back().item->registerAction("Back", brls::Key::B, [this]{
+        std::scoped_lock<std::mutex> g(_mutex_);
+        this->setRequestedCd( "../" );
+        return true;
+      });
+    }
+  }
+
+  TabBrowser::sortEntries( _entryList_ );
+
+  for( auto& entry : _entryList_ ){
+    this->addView( entry.item );
+  }
+
+  brls::Application::giveFocus( _entryList_[0].item );
 }
 
 std::string TabBrowser::getCwd() const{
@@ -148,4 +138,17 @@ std::string TabBrowser::getCwd() const{
 
 void TabBrowser::setRequestedCd(const std::string &requestedCd) {
   _requestedCd_ = requestedCd;
+}
+
+
+void TabBrowser::sortEntries(std::vector<DirEntry>& entryList_){
+  GenericToolbox::sortVector( entryList_, [](const DirEntry &a_, const DirEntry &b_) {
+    if( a_.isDir and not b_.isDir ) return true;
+    if( not a_.isDir and b_.isDir ) return false;
+    if( a_.name.empty() ) return false;
+    if( b_.name.empty() ) return true;
+    if( a_.name[0] != '.' and b_.name[0] == '.') return true;
+    if( b_.name[0] != '.' and a_.name[0] == '.') return false;
+    return GenericToolbox::toLowerCase(a_.name) < GenericToolbox::toLowerCase(b_.name);
+  });
 }

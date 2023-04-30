@@ -11,6 +11,14 @@
 #include "string"
 #include "mutex"
 
+
+struct DirEntry {
+  std::string name{};
+  bool isDir{false};
+
+  brls::ListItem* item{nullptr};
+};
+
 class FrameMain;
 
 class TabBrowser : public brls::List {
@@ -28,12 +36,17 @@ public:
   // overrides
   void draw(NVGcontext* vg, int x, int y, unsigned width, unsigned height, brls::Style* style, brls::FrameContext* ctx) override;
 
+  static void sortEntries(std::vector<DirEntry>& entryList_);
+
 private:
   FrameMain* _owner_;
 
   std::mutex _mutex_;
   std::string _requestedCd_;
   std::vector<std::string> _walkPath_;
+
+  std::vector<DirEntry> _entryList_;
+  std::vector<DirEntry> _fileList_;
 
 };
 
