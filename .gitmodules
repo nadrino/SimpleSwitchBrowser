@@ -1,0 +1,3 @@
+[submodule "submodules/borealis"]
+	path = submodules/borealis
+	url = https://github.com/nadrino/borealis
