@@ -7,10 +7,23 @@
 
 #include "borealis.hpp"
 
+#include "vector"
+
+class FrameMain;
+
 class TabBrowser : public brls::List {
 
 public:
-  TabBrowser();
+  explicit TabBrowser(FrameMain* owner_);
+
+  void cd( const std::string& folder_ );
+  std::string getCwd() const;
+
+
+private:
+  FrameMain* _owner_;
+
+  std::vector<std::string> _walkPath_;
 
 };
 

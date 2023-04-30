@@ -14,15 +14,14 @@ LoggerInit([]{
   Logger::setUserHeaderStr("[MainFrame]");
 });
 
-FrameMain::FrameMain() {
+FrameMain::FrameMain() : brls::TabFrame() {
   LogWarning << "Building FrameMain" << std::endl;
 
-  this->setTitle("SimpleSwitchBrowser");
-  this->setFooterText( "v0.0.1" );
+  this->setFooterText( "SimpleSwitchBrowser v0.0.1" );
   this->setIcon("romfs:/images/icon_corner.png");
 
 
-  this->addTab( "Browser", new TabBrowser() );
+  this->addTab( "Browser", new TabBrowser( this ) );
   this->addSeparator();
   this->addTab( "About", new TabAbout() );
 }

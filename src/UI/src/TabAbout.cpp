@@ -13,7 +13,7 @@ LoggerInit([]{
   Logger::setUserHeaderStr("[TabAbout]");
 });
 
-TabAbout::TabAbout() {
+TabAbout::TabAbout() : brls::List() {
   LogWarning << "Building TabAbout" << std::endl;
 
   // Subtitle
