@@ -23,16 +23,39 @@ TabBrowser::TabBrowser(FrameMain* owner_) : brls::List(), _owner_(owner_) {
 
 }
 
+void TabBrowser::draw(NVGcontext *vg, int x, int y, unsigned int width, unsigned int height, brls::Style *style,
+                         brls::FrameContext *ctx) {
+
+  if( not _requestedCd_.empty() ){
+    std::scoped_lock<std::mutex> g(_mutex_);
+    this->cd( _requestedCd_ );
+    this->ls();
+    _requestedCd_.clear();
+  }
+
+  brls::List::draw(vg, x, y, width, height, style, ctx);
+}
+
 void TabBrowser::cd( const std::string& folder_ ){
-  if( not folder_.empty() ){
+  if( folder_.empty() ){
+    _walkPath_.clear();
+  }
+  else if( folder_ == "../" ){
+    _walkPath_.pop_back();
+  }
+  else{
     _walkPath_.emplace_back(folder_);
   }
 
-  _owner_->setTitle( this->getCwd() );
+
+  if( _walkPath_.empty() ){ _owner_->setTitle( "SimpleSwitchBrowser" ); }
+  else{ _owner_->setTitle( this->getCwd() ); }
 }
 void TabBrowser::ls(){
+  this->clear();
 
   std::string cwd{this->getCwd()};
+  std::vector<brls::ListItem*> itemList;
 
   {
     auto foldersList = GenericToolbox::getListOfSubFoldersInFolder( cwd );
@@ -45,11 +68,26 @@ void TabBrowser::ls(){
     });
 
     for (auto &folder: foldersList) {
-      auto *item = new brls::ListItem(folder, "", "");
+
+      auto *item = new brls::ListItem("\uE2C7 " + folder, "", "");
       item->setHeight(50);
-      item->setValue("folder");
+
+      auto folderCopy{folder};
+      item->getClickEvent()->subscribe([this, folderCopy](brls::View*){
+        this->setRequestedCd( folderCopy );
+        return true;
+      });
+      item->updateActionHint(brls::Key::A, "Enter");
+
+      if( not _walkPath_.empty() ){
+        item->registerAction("Back", brls::Key::B, [this]{
+          this->setRequestedCd( "../" );
+          return true;
+        });
+      }
 
       this->addView(item);
+      itemList.emplace_back(item);
     }
   }
 
@@ -67,12 +105,27 @@ void TabBrowser::ls(){
       auto *item = new brls::ListItem(file, "", "");
       item->setHeight(50);
 
+      if( not _walkPath_.empty() ){
+        item->registerAction("Back", brls::Key::B, [this]{
+          std::scoped_lock<std::mutex> g(_mutex_);
+          this->setRequestedCd( "../" );
+          return true;
+        });
+      }
+
       this->addView(item);
+      itemList.emplace_back(item);
     }
   }
 
+  brls::Application::giveFocus( itemList[0] );
+  this->onWindowSizeChanged();
 }
 
 std::string TabBrowser::getCwd() const{
   return "/" + GenericToolbox::joinVectorString(_walkPath_, "/");
+}
+
+void TabBrowser::setRequestedCd(const std::string &requestedCd) {
+  _requestedCd_ = requestedCd;
 }

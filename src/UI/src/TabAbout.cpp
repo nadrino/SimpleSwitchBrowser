@@ -19,7 +19,7 @@ TabAbout::TabAbout() : brls::List() {
   // Subtitle
   auto* shortDescription = new brls::Label(
     brls::LabelStyle::REGULAR,
-    "SimpleSwitchBrowser is an Nintendo Switch homebrew app that allows to browse files on your Switch.",
+    "SimpleSwitchBrowser is a Nintendo Switch homebrew app that allows to browse files on your Switch.",
     true
   );
   shortDescription->setHorizontalAlign(NVG_ALIGN_CENTER);

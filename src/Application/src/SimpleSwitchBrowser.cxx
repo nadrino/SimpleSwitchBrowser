@@ -38,8 +38,8 @@ int main( int argc, char* argv[] ){
 
   // these options have to be put after pushView
   // disable + as quit
-  mainFrame->registerAction("", brls::Key::PLUS, []{return true;}, true);
-  mainFrame->updateActionHint(brls::Key::PLUS, ""); // make the change visible
+//  mainFrame->registerAction("", brls::Key::PLUS, []{return true;}, true);
+//  mainFrame->updateActionHint(brls::Key::PLUS, ""); // make the change visible
 
 
   while(brls::Application::mainLoop()){
