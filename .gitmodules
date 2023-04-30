@@ -1,3 +1,6 @@
 [submodule "submodules/borealis"]
 	path = submodules/borealis
 	url = https://github.com/nadrino/borealis
+[submodule "submodules/simple-cpp-logger"]
+	path = submodules/simple-cpp-logger
+	url = https://github.com/nadrino/simple-cpp-logger.git
