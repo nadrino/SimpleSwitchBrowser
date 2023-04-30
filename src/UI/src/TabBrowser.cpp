@@ -19,6 +19,7 @@ TabBrowser::TabBrowser(FrameMain* owner_) : brls::List(), _owner_(owner_) {
 
   // root
   this->cd("");
+  this->ls();
 
 }
 
@@ -27,8 +28,11 @@ void TabBrowser::cd( const std::string& folder_ ){
     _walkPath_.emplace_back(folder_);
   }
 
-  std::string cwd{this->getCwd()};
   _owner_->setTitle( this->getCwd() );
+}
+void TabBrowser::ls(){
+
+  std::string cwd{this->getCwd()};
 
   {
     auto foldersList = GenericToolbox::getListOfSubFoldersInFolder( cwd );
@@ -68,6 +72,7 @@ void TabBrowser::cd( const std::string& folder_ ){
   }
 
 }
+
 std::string TabBrowser::getCwd() const{
   return "/" + GenericToolbox::joinVectorString(_walkPath_, "/");
 }

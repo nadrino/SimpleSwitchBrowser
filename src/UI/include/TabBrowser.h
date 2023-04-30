@@ -17,7 +17,9 @@ public:
   explicit TabBrowser(FrameMain* owner_);
 
   void cd( const std::string& folder_ );
-  std::string getCwd() const;
+  void ls();
+
+  [[nodiscard]] std::string getCwd() const;
 
 
 private:
