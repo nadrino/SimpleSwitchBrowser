@@ -20,6 +20,7 @@ target_include_directories( ${GUI_APP}.elf PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/in
 
 target_link_libraries(
     ${GUI_APP}.elf PUBLIC
+    UI
     Borealis
     switch::libnx
     -L/opt/devkitpro/portlibs/switch/lib
@@ -49,13 +50,6 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${BOREALIS_DIR}/resources/. ${BUILD_ROMFS}/borealis/.
     COMMAND ${CMAKE_COMMAND} -E echo "Resources have been gathered."
 )
-
-
-cmake_info( "GUI_APP = ${GUI_APP}" )
-cmake_info( "GUI_TITLE = ${GUI_TITLE}" )
-cmake_info( "GUI_AUTHOR = ${GUI_AUTHOR}" )
-cmake_info( "GUI_ICON = ${GUI_ICON}" )
-cmake_info( "BUILD_ROMFS = ${BUILD_ROMFS}" )
 
 build_switch_binaries(
     ${GUI_APP}.elf

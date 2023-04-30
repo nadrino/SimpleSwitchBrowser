@@ -2,6 +2,10 @@
 // Created by Adrien Blanchet on 30/04/2023.
 //
 
+
+// this project
+#include "MainFrame.h"
+
 // submodules
 #include "Logger.h"
 #include "borealis.hpp"
@@ -27,6 +31,11 @@ int main( int argc, char* argv[] ){
 
   brls::i18n::loadTranslations("en-US");
   LogThrowIf(not brls::Application::init("SimpleSwitchBrowser"), "Unable to init Borealis application");
+
+
+  auto* mainFrame = new MainFrame();
+  brls::Application::pushView( mainFrame );
+
 
   while(brls::Application::mainLoop()){
     // brls handles inputs. Nothing to do here
