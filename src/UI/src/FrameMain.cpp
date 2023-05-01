@@ -8,6 +8,8 @@
 
 #include "Logger.h"
 
+#include "VersionConfig.h"
+
 
 
 LoggerInit([]{
@@ -17,7 +19,7 @@ LoggerInit([]{
 FrameMain::FrameMain() : brls::TabFrame() {
   LogWarning << "Building FrameMain" << std::endl;
 
-  this->setFooterText( "SimpleSwitchBrowser v1.0.0" );
+  this->setFooterText( "SimpleSwitchBrowser " + VersionConfig::getVersionStr() );
   this->setIcon("romfs:/images/icon_corner.png");
 
 

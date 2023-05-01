@@ -3,6 +3,7 @@
 //
 
 #include "TabAbout.h"
+#include "VersionConfig.h"
 
 #include "Logger.h"
 
@@ -34,7 +35,7 @@ TabAbout::TabAbout() : brls::List() {
   leftBox->setWidth(500);
   leftBox->setParent(table);
 
-  leftBox->addView(new brls::Header("Version 1.0.0 - What's new ?"));
+  leftBox->addView(new brls::Header("Version " + VersionConfig::getVersionStr() + " - What's new ?"));
   auto *changelog = new brls::Label(
     brls::LabelStyle::DESCRIPTION,
     " - First release\n \n",
