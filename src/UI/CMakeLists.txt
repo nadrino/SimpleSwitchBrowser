@@ -5,6 +5,8 @@ set( SRC_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/FrameMain.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/TabBrowser.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/TabAbout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/PopupLoadingBox.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/PopupLoadingView.cpp
     )
 
 add_library( ${LIB_NAME} STATIC ${SRC_FILES} )

@@ -5,6 +5,8 @@
 #ifndef SIMPLESWITCHBROWSER_TABBROWSER_H
 #define SIMPLESWITCHBROWSER_TABBROWSER_H
 
+#include "PopupLoadingBox.h"
+
 #include "GenericToolbox.h"
 
 #include "borealis.hpp"
@@ -13,6 +15,7 @@
 #include "string"
 #include "mutex"
 #include "memory"
+#include "future"
 
 
 ENUM_EXPANDER(
@@ -59,6 +62,8 @@ protected:
   void cd( const std::string& folder_ );
   void ls();
 
+  bool removeFolderFct( const std::string& folderPath_ );
+
 private:
   FrameMain* _owner_;
 
@@ -71,6 +76,9 @@ private:
   std::vector<int> _walkFocus_{};
 
   std::vector<DirEntry> _entryList_;
+
+  std::future<bool> _asyncResponse_{};
+  PopupLoadingBox _loadingBox_{};
 
 };
 

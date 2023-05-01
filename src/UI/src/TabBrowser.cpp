@@ -7,7 +7,7 @@
 
 #include "Logger.h"
 #include "GenericToolbox.h"
-
+#include "GenericToolbox.Switch.h"
 
 LoggerInit([]{
   Logger::setUserHeaderStr("[TabBrowser]");
@@ -108,7 +108,8 @@ void TabBrowser::ls(){
     _entryList_.emplace_back();
 
     _entryList_.back().name = folder;
-    _entryList_.back().fullPath = GenericToolbox::joinPath(cwd, folder);
+    if( cwd == "/" ) _entryList_.back().fullPath = GenericToolbox::joinPath("", folder);
+    else _entryList_.back().fullPath = GenericToolbox::joinPath(cwd, folder);
     _entryList_.back().type = IS_DIR;
   }
 
@@ -117,7 +118,8 @@ void TabBrowser::ls(){
     _entryList_.emplace_back();
 
     _entryList_.back().name = file;
-    _entryList_.back().fullPath = GenericToolbox::joinPath(cwd, file);
+    if( cwd == "/" ) _entryList_.back().fullPath = GenericToolbox::joinPath("", file);
+    else _entryList_.back().fullPath = GenericToolbox::joinPath(cwd, file);
     _entryList_.back().type = IS_FILE;
     _entryList_.back().size = double( GenericToolbox::getFileSize( _entryList_.back().fullPath ) );
   }
@@ -154,6 +156,25 @@ void TabBrowser::ls(){
         return true;
       });
       entry.item->updateActionHint(brls::Key::A, "Open");
+
+      auto folderPath{entry.fullPath};
+      entry.item->registerAction("Delete", brls::Key::X, [this, folderPath]{
+
+        auto* dialog = new brls::Dialog("Do you want to remove \"" + folderPath + "\" ?");
+        dialog->addButton("Yes", [this, dialog, folderPath](brls::View* view) {
+          // first, close the dialog box before the async routine starts
+          dialog->close();
+
+          _asyncResponse_ = std::async(&TabBrowser::removeFolderFct, this, folderPath);
+        });
+        dialog->addButton("No", [dialog](brls::View* view) { dialog->close(); });
+
+        dialog->setCancelable(true);
+        dialog->open();
+        return true;
+      });
+
+
     }
     else if( entry.type == IS_FILE ){
       entry.item->setLabel( entry.name );
@@ -195,3 +216,74 @@ void TabBrowser::ls(){
 
   brls::Application::giveFocus( _entryList_[focusIndex].item.get() );
 }
+
+
+bool TabBrowser::removeFolderFct( const std::string& folderPath_ ){
+  // push the progress bar to the view
+  _loadingBox_.pushView();
+
+  LogAlert << "Removing: " << folderPath_ << std::endl;
+  if( _loadingBox_.getLoadingView() != nullptr ){
+    _loadingBox_.getLoadingView()->reset();
+    _loadingBox_.getLoadingView()->setHeader("Removing folder...");
+    _loadingBox_.getLoadingView()->setProgressColor(nvgRGB(0xff, 0x64, 0x64));
+    _loadingBox_.getLoadingView()->setTitlePtr(&folderPath_);
+    _loadingBox_.getLoadingView()->setSubTitlePtr(&GenericToolbox::Switch::Utils::b.strMap["ext_mod_manager::removeMod:current_file"]);
+    _loadingBox_.getLoadingView()->setProgressFractionPtr(&GenericToolbox::Switch::Utils::b.progressMap["ext_mod_manager::removeMod"]);
+  }
+
+  GenericToolbox::Switch::Utils::b.strMap["ext_mod_manager::removeMod:current_file"] = "Listing files...";
+  auto fileList = GenericToolbox::getListOfFilesInSubFolders(folderPath_);
+  LogTrace << "rm " << fileList.size() << " files" << std::endl;
+
+  auto maxDeleteDepth = GenericToolbox::splitString(folderPath_, "/").size();
+
+  int iFile=0;
+  for(auto &file : fileList){
+    iFile++;
+
+    std::string fullPathFile = GenericToolbox::joinPath(folderPath_, file);
+    LogTrace << "rm " << fullPathFile << std::endl;
+    GenericToolbox::removeRepeatedCharInsideInputStr(fullPathFile, "/");
+    GenericToolbox::Switch::Utils::b.strMap["ext_mod_manager::removeMod:current_file"] =
+        GenericToolbox::getFileNameFromFilePath(file) + " (" +
+        GenericToolbox::parseSizeUnits(double(GenericToolbox::getFileSize(fullPathFile))) + ")";
+    GenericToolbox::Switch::Utils::b.progressMap["ext_mod_manager::removeMod"] = (iFile + 1.) / double(fileList.size());
+
+    // Remove the mod file
+    GenericToolbox::deleteFile(fullPathFile);
+
+    // Delete the folder if no other files is present
+    std::string parentFolderPath = GenericToolbox::getFolderPathFromFilePath(fullPathFile );
+    while( GenericToolbox::isFolderEmpty( parentFolderPath ) ) {
+
+      GenericToolbox::deleteEmptyDirectory( parentFolderPath );
+
+      std::vector<std::string> subFolderList = GenericToolbox::splitString(parentFolderPath, "/");
+      if(subFolderList.empty()) break; // virtually impossible -> would mean everything has been deleted on the sd
+      // decrement folder depth
+      parentFolderPath =
+          "/" + GenericToolbox::joinVectorString(
+              subFolderList,
+              "/",
+              0,
+              int(subFolderList.size()) - 1
+          );
+
+      if( subFolderList.size() < maxDeleteDepth ) break;
+    }
+  }
+
+  if( fileList.empty() ){
+    GenericToolbox::deleteEmptyDirectory( folderPath_ );
+  }
+
+  _loadingBox_.getLoadingView()->reset();
+  _loadingBox_.popView();
+  brls::Application::unblockInputs();
+  std::scoped_lock<std::mutex> g(_mutex_);
+  _coolDownFrames_ = 2;
+  this->setRequestedCd( "./" );
+  return true;
+}
+
