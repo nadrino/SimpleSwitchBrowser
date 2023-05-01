@@ -5,6 +5,8 @@
 #ifndef SIMPLESWITCHBROWSER_TABBROWSER_H
 #define SIMPLESWITCHBROWSER_TABBROWSER_H
 
+#include "GenericToolbox.h"
+
 #include "borealis.hpp"
 
 #include "vector"
@@ -13,11 +15,24 @@
 #include "memory"
 
 
+ENUM_EXPANDER(
+    EntryType, -1,
+    UNSET,
+    IS_DIR,
+    IS_FILE,
+    EMPTY
+);
+
 struct DirEntry {
   std::string name{};
-  bool isDir{false};
+  std::string fullPath{};
+
+  EntryType type{UNSET};
+  double size{-1};
 
   std::shared_ptr<brls::ListItem> item{nullptr};
+
+  [[nodiscard]] bool isDir() const { return type == IS_DIR; }
 };
 
 class FrameMain;

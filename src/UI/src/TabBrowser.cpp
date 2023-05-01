@@ -62,8 +62,8 @@ void TabBrowser::draw(NVGcontext *vg, int x, int y, unsigned int width, unsigned
 
 void TabBrowser::sortEntries(std::vector<DirEntry>& entryList_){
   GenericToolbox::sortVector( entryList_, [](const DirEntry &a_, const DirEntry &b_) {
-    if( a_.isDir and not b_.isDir ) return true;
-    if( not a_.isDir and b_.isDir ) return false;
+    if( a_.isDir() and not b_.isDir() ) return true;
+    if( not a_.isDir() and b_.isDir() ) return false;
     if( a_.name.empty() ) return false;
     if( b_.name.empty() ) return true;
     if( a_.name[0] != '.' and b_.name[0] == '.') return true;
@@ -98,90 +98,90 @@ void TabBrowser::ls(){
   _entryList_.clear();
 
   std::string cwd{this->getCwd()};
-
-  LogDebug << "looking in " << cwd << std::endl;
+  LogInfo << "Walking in " << cwd << std::endl;
 
   auto foldersList = GenericToolbox::getListOfSubFoldersInFolder( cwd );
-  LogDebug << "folders: " << GenericToolbox::parseVectorAsString(foldersList) << std::endl;
   _entryList_.reserve(foldersList.size() );
   for (auto &folder: foldersList) {
     _entryList_.emplace_back();
 
     _entryList_.back().name = folder;
-    _entryList_.back().isDir = true;
-    _entryList_.back().item = std::make_shared<brls::ListItem>("\uE2C7 " + folder);
-    _entryList_.back().item->setHeight( 50 );
-
-    auto folderCopy{folder};
-    _entryList_.back().item->getClickEvent()->subscribe([this, folderCopy](brls::View*){
-      this->setRequestedCd( folderCopy );
-      return true;
-    });
-    _entryList_.back().item->updateActionHint(brls::Key::A, "Enter");
-
-    if( not _walkPath_.empty() ){
-      _entryList_.back().item->registerAction("Back", brls::Key::B, [this]{
-        this->setRequestedCd( "../" );
-        return true;
-      });
-    }
+    _entryList_.back().fullPath = GenericToolbox::joinPath(cwd, folder);
+    _entryList_.back().type = IS_DIR;
   }
 
-
   auto fileList = GenericToolbox::getListOfFilesInFolder( cwd );
-  LogDebug << "fileList: " << GenericToolbox::parseVectorAsString(fileList) << std::endl;
   for (auto &file: fileList) {
     _entryList_.emplace_back();
 
     _entryList_.back().name = file;
-    _entryList_.back().isDir = false;
-    _entryList_.back().item = std::make_shared<brls::ListItem>(file);
-    _entryList_.back().item->setHeight( 50 );
-
-    if( not _walkPath_.empty() ){
-      _entryList_.back().item->registerAction("Back", brls::Key::B, [this]{
-        std::scoped_lock<std::mutex> g(_mutex_);
-        this->setRequestedCd( "../" );
-        return true;
-      });
-    }
-
-    std::string fileName{_entryList_.back().name};
-    _entryList_.back().item->registerAction("Delete", brls::Key::X, [this, fileName]{
-
-      auto* dialog = new brls::Dialog("Do you want to remove \"" + fileName + "\" ?");
-      dialog->addButton("Yes", [this, dialog, fileName](brls::View* view) {
-        dialog->close();
-        LogAlert << "Deleting: " << fileName << std::endl;
-        if( _walkPath_.empty() ) GenericToolbox::deleteFile( "/" + fileName );
-        else GenericToolbox::deleteFile( this->getCwd() + "/" + fileName );
-        std::scoped_lock<std::mutex> g(_mutex_);
-        this->setRequestedCd( "./" );
-      });
-      dialog->addButton("No", [dialog](brls::View* view) { dialog->close(); });
-
-      dialog->setCancelable(true);
-      dialog->open();
-      return true;
-    });
+    _entryList_.back().fullPath = GenericToolbox::joinPath(cwd, file);
+    _entryList_.back().type = IS_FILE;
+    _entryList_.back().size = double( GenericToolbox::getFileSize( _entryList_.back().fullPath ) );
   }
 
+  // case of IO error or empty
   if( _entryList_.empty() ){
     _entryList_.emplace_back();
-    _entryList_.back().item = std::make_shared<brls::ListItem>("IO error or empty");
-    _entryList_.back().item->setHeight( 50 );
-
-    if( not _walkPath_.empty() ){
-      _entryList_.back().item->registerAction("Back", brls::Key::B, [this]{
-        std::scoped_lock<std::mutex> g(_mutex_);
-        this->setRequestedCd( "../" );
-        return true;
-      });
-    }
+    _entryList_.back().type = EMPTY;
   }
 
   TabBrowser::sortEntries( _entryList_ );
 
+  // build items
+  for( auto& entry : _entryList_ ){
+    entry.item = std::make_shared<brls::ListItem>("");
+    entry.item->setHeight( 50 );
+    entry.item->setValueActiveColor( nvgRGB(80, 80, 80) );
+    entry.item->updateActionHint(brls::Key::A, "");
+
+    if( not _walkPath_.empty() ){
+      entry.item->registerAction("Back", brls::Key::B, [this]{
+        std::scoped_lock<std::mutex> g(_mutex_);
+        this->setRequestedCd( "../" );
+        return true;
+      });
+    }
+
+    if     ( entry.type == IS_DIR ){
+      entry.item->setLabel( GenericToolbox::joinAsString(" ", "\uE2C7", entry.name) );
+
+      auto folder{entry.name};
+      entry.item->getClickEvent()->subscribe([this, folder](brls::View*){
+        this->setRequestedCd( folder );
+        return true;
+      });
+      entry.item->updateActionHint(brls::Key::A, "Open");
+    }
+    else if( entry.type == IS_FILE ){
+      entry.item->setLabel( entry.name );
+      entry.item->setValue( GenericToolbox::parseSizeUnits( entry.size ) );
+
+      std::string filePath{entry.fullPath};
+      entry.item->registerAction("Delete", brls::Key::X, [this, filePath]{
+
+        auto* dialog = new brls::Dialog("Do you want to remove \"" + filePath + "\" ?");
+        dialog->addButton("Yes", [this, dialog, filePath](brls::View* view) {
+          dialog->close();
+          LogAlert << "Deleting: " << filePath << std::endl;
+          GenericToolbox::deleteFile( filePath );
+          std::scoped_lock<std::mutex> g(_mutex_);
+          this->setRequestedCd( "./" );
+        });
+        dialog->addButton("No", [dialog](brls::View* view) { dialog->close(); });
+
+        dialog->setCancelable(true);
+        dialog->open();
+        return true;
+      });
+    }
+    else if( entry.type == EMPTY ){
+      entry.item->setValue("empty folder");
+    }
+
+  }
+
+  // add to view now
   for( auto& entry : _entryList_ ){
     this->addView( entry.item.get() );
   }
