@@ -38,17 +38,17 @@ std::string TabBrowser::getCwd() const{
 void TabBrowser::draw(NVGcontext *vg, int x, int y, unsigned int width, unsigned int height, brls::Style *style,
                       brls::FrameContext *ctx) {
 
-  if( not brls::Application::hasViewDisappearing() ){
+  if( _coolDownFrames_ == 0 and not brls::Application::hasViewDisappearing() ){
 
     if( _requestScroll_ ){
+      LogDebug << "Updating scrolling triggerd..." << std::endl;
       // update scroll can only happen if no animation is going on
       this->setUpdateScrollingOnNextFrame( true );
       _requestScroll_ = false;
     }
-
-    if( not _requestedCd_.empty() and not brls::Application::hasViewDisappearing() ){
+    else if( not _requestedCd_.empty() and not brls::Application::hasViewDisappearing() ){
       std::scoped_lock<std::mutex> g(_mutex_);
-      LogTrace << "Updating list..." << std::endl;
+      LogDebug << "Updating list..." << std::endl;
       this->cd( _requestedCd_ );
       this->ls();
       _requestedCd_.clear();
@@ -56,6 +56,8 @@ void TabBrowser::draw(NVGcontext *vg, int x, int y, unsigned int width, unsigned
     }
 
   }
+
+  if( _coolDownFrames_ != 0 ){ _coolDownFrames_--; }
 
   brls::List::draw(vg, x, y, width, height, style, ctx);
 }
@@ -165,7 +167,9 @@ void TabBrowser::ls(){
           dialog->close();
           LogAlert << "Deleting: " << filePath << std::endl;
           GenericToolbox::deleteFile( filePath );
+
           std::scoped_lock<std::mutex> g(_mutex_);
+          _coolDownFrames_ = 2;
           this->setRequestedCd( "./" );
         });
         dialog->addButton("No", [dialog](brls::View* view) { dialog->close(); });

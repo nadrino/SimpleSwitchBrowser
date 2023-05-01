@@ -62,6 +62,7 @@ protected:
 private:
   FrameMain* _owner_;
 
+  int _coolDownFrames_{0};
   bool _requestScroll_{false};
 
   std::mutex _mutex_;
