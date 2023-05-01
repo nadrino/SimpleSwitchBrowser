@@ -102,8 +102,11 @@ void TabBrowser::ls(){
   std::string cwd{this->getCwd()};
   LogInfo << "Walking in " << cwd << std::endl;
 
+
+  LogInfo << "Listing folders in " << cwd << std::endl;
   auto foldersList = GenericToolbox::getListOfSubFoldersInFolder( cwd );
-  _entryList_.reserve(foldersList.size() );
+  LogWarning << "Found " << foldersList.size() << " folders." << std::endl;
+  _entryList_.reserve( _entryList_.size() + foldersList.size() );
   for (auto &folder: foldersList) {
     _entryList_.emplace_back();
 
@@ -113,7 +116,10 @@ void TabBrowser::ls(){
     _entryList_.back().type = IS_DIR;
   }
 
+  LogInfo << "Listing files in " << cwd << std::endl;
   auto fileList = GenericToolbox::getListOfFilesInFolder( cwd );
+  LogWarning << "Found " << fileList.size() << " files." << std::endl;
+  _entryList_.reserve( _entryList_.size() + fileList.size() );
   for (auto &file: fileList) {
     _entryList_.emplace_back();
 
@@ -121,7 +127,10 @@ void TabBrowser::ls(){
     if( cwd == "/" ) _entryList_.back().fullPath = GenericToolbox::joinPath("", file);
     else _entryList_.back().fullPath = GenericToolbox::joinPath(cwd, file);
     _entryList_.back().type = IS_FILE;
-    _entryList_.back().size = double( GenericToolbox::getFileSize( _entryList_.back().fullPath ) );
+    if( fileList.size() < 256 ){
+      // if too many files it takes too much time
+      _entryList_.back().size = double( GenericToolbox::getFileSize( _entryList_.back().fullPath ) );
+    }
   }
 
   // case of IO error or empty
@@ -130,9 +139,11 @@ void TabBrowser::ls(){
     _entryList_.back().type = EMPTY;
   }
 
+  LogInfo << "Sorting entries..." << std::endl;
   TabBrowser::sortEntries( _entryList_ );
 
   // build items
+  LogInfo << "Building list items..." << std::endl;
   for( auto& entry : _entryList_ ){
     entry.item = std::make_shared<brls::ListItem>("");
     entry.item->setHeight( 50 );
@@ -185,7 +196,9 @@ void TabBrowser::ls(){
     }
     else if( entry.type == IS_FILE ){
       entry.item->setLabel( entry.name );
-      entry.item->setValue( GenericToolbox::parseSizeUnits( entry.size ) );
+
+      if( entry.size != -1 ){ entry.item->setValue( GenericToolbox::parseSizeUnits( entry.size ) ); }
+
 
       std::string filePath{entry.fullPath};
       entry.item->registerAction("Delete", brls::Key::X, [this, filePath]{
@@ -207,6 +220,7 @@ void TabBrowser::ls(){
         return true;
       });
 
+      // option to exec
       if( GenericToolbox::getFileExtension(entry.name) == "nro" ){
 
         entry.item->getClickEvent()->subscribe([filePath](brls::View*){
@@ -346,8 +360,7 @@ brls::Image* TabBrowser::getIcon( const std::string& filePath_ ){
 
     size_t iconSize = asset_header.icon.size;
     auto *icon = (uint8_t *) malloc(iconSize);
-    if (icon != nullptr && iconSize != 0)
-    {
+    if (icon != nullptr && iconSize != 0) {
       memset(icon, 0, iconSize);
       fseek(file, header.size + asset_header.icon.offset, SEEK_SET);
       fread(icon, iconSize, 1, file);
