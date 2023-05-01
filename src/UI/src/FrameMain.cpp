@@ -17,7 +17,7 @@ LoggerInit([]{
 FrameMain::FrameMain() : brls::TabFrame() {
   LogWarning << "Building FrameMain" << std::endl;
 
-  this->setFooterText( "SimpleSwitchBrowser v0.0.1" );
+  this->setFooterText( "SimpleSwitchBrowser v1.0.0" );
   this->setIcon("romfs:/images/icon_corner.png");
 
 

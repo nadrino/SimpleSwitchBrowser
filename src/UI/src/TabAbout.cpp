@@ -34,7 +34,7 @@ TabAbout::TabAbout() : brls::List() {
   leftBox->setWidth(500);
   leftBox->setParent(table);
 
-  leftBox->addView(new brls::Header("Version 0.0.1 - What's new ?"));
+  leftBox->addView(new brls::Header("Version 1.0.0 - What's new ?"));
   auto *changelog = new brls::Label(
     brls::LabelStyle::DESCRIPTION,
     " - First release\n \n",
