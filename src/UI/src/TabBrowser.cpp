@@ -174,6 +174,13 @@ void TabBrowser::ls(){
         return true;
       });
 
+      if( GenericToolbox::Switch::Utils::isTidLike(entry.name) ){
+        auto *icon = GenericToolbox::Switch::Utils::getIconFromTitleId( entry.name );
+        if( icon != nullptr ){
+          entry.item->setThumbnail( icon, 0x20000 );
+          entry.item->setHeight( 75 );
+        }
+      }
 
     }
     else if( entry.type == IS_FILE ){
@@ -221,6 +228,11 @@ void TabBrowser::ls(){
           return true;
         });
         entry.item->updateActionHint(brls::Key::A, "Load");
+
+        brls::Image *icon = TabBrowser::getIcon( filePath );
+        entry.item->setThumbnail( icon );
+        entry.item->setHeight( 75 );
+
       }
 
     }
@@ -319,3 +331,41 @@ bool TabBrowser::removeFolderFct( const std::string& folderPath_ ){
   return true;
 }
 
+brls::Image* TabBrowser::getIcon( const std::string& filePath_ ){
+  brls::Image *image = nullptr;
+
+  FILE *file = fopen(filePath_.c_str(), "rb");
+  if (file)
+  {
+    fseek(file, sizeof(NroStart), SEEK_SET);
+    NroHeader header;
+    fread(&header, sizeof(header), 1, file);
+    fseek(file, header.size, SEEK_SET);
+    NroAssetHeader asset_header;
+    fread(&asset_header, sizeof(asset_header), 1, file);
+
+    size_t iconSize = asset_header.icon.size;
+    auto *icon = (uint8_t *) malloc(iconSize);
+    if (icon != nullptr && iconSize != 0)
+    {
+      memset(icon, 0, iconSize);
+      fseek(file, header.size + asset_header.icon.offset, SEEK_SET);
+      fread(icon, iconSize, 1, file);
+
+      LogDebug << "Caching New Icon: " << filePath_ << std::endl;;
+
+      image = new brls::Image(icon, iconSize);
+    }
+    else{ image = new brls::Image("romfs:/images/unknown.png"); }
+
+    free(icon);
+    icon = nullptr;
+  }
+  else
+  {
+    LogDebug << "Using Unknown Icon For: " << filePath_ << std::endl;
+    image = new brls::Image("romfs:/images/unknown.png");
+  }
+
+  return image;
+}

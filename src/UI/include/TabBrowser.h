@@ -57,6 +57,7 @@ public:
 
   // statics
   static void sortEntries(std::vector<DirEntry>& entryList_);
+  static brls::Image* getIcon( const std::string& filePath_ );
 
 protected:
   void cd( const std::string& folder_ );
