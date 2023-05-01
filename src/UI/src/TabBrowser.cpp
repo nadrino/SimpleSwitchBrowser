@@ -27,19 +27,49 @@ TabBrowser::~TabBrowser() {
   this->clear( false );
 }
 
-void TabBrowser::draw(NVGcontext *vg, int x, int y, unsigned int width, unsigned int height, brls::Style *style,
-                         brls::FrameContext *ctx) {
+void TabBrowser::setRequestedCd(const std::string &requestedCd) {
+  _requestedCd_ = requestedCd;
+}
 
-  if( not _requestedCd_.empty() and not brls::Application::hasViewDisappearing() ){
-    std::scoped_lock<std::mutex> g(_mutex_);
-    LogTrace << "Updating list..." << std::endl;
-    this->cd( _requestedCd_ );
-    this->ls();
-    this->onWindowSizeChanged();
-    _requestedCd_.clear();
+std::string TabBrowser::getCwd() const{
+  return "/" + GenericToolbox::joinVectorString(_walkPath_, "/");
+}
+
+void TabBrowser::draw(NVGcontext *vg, int x, int y, unsigned int width, unsigned int height, brls::Style *style,
+                      brls::FrameContext *ctx) {
+
+  if( not brls::Application::hasViewDisappearing() ){
+
+    if( _requestScroll_ ){
+      // update scroll can only happen if no animation is going on
+      this->setUpdateScrollingOnNextFrame( true );
+      _requestScroll_ = false;
+    }
+
+    if( not _requestedCd_.empty() and not brls::Application::hasViewDisappearing() ){
+      std::scoped_lock<std::mutex> g(_mutex_);
+      LogTrace << "Updating list..." << std::endl;
+      this->cd( _requestedCd_ );
+      this->ls();
+      _requestedCd_.clear();
+      _requestScroll_ = true;
+    }
+
   }
 
   brls::List::draw(vg, x, y, width, height, style, ctx);
+}
+
+void TabBrowser::sortEntries(std::vector<DirEntry>& entryList_){
+  GenericToolbox::sortVector( entryList_, [](const DirEntry &a_, const DirEntry &b_) {
+    if( a_.isDir and not b_.isDir ) return true;
+    if( not a_.isDir and b_.isDir ) return false;
+    if( a_.name.empty() ) return false;
+    if( b_.name.empty() ) return true;
+    if( a_.name[0] != '.' and b_.name[0] == '.') return true;
+    if( b_.name[0] != '.' and a_.name[0] == '.') return false;
+    return GenericToolbox::toLowerCase(a_.name) < GenericToolbox::toLowerCase(b_.name);
+  });
 }
 
 void TabBrowser::cd( const std::string& folder_ ){
@@ -158,27 +188,6 @@ void TabBrowser::ls(){
 
   int focusIndex{_walkFocus_.back()};
   while( focusIndex >= int(_entryList_.size()) ){ focusIndex--; }
+
   brls::Application::giveFocus( _entryList_[focusIndex].item.get() );
 }
-
-std::string TabBrowser::getCwd() const{
-  return "/" + GenericToolbox::joinVectorString(_walkPath_, "/");
-}
-
-void TabBrowser::setRequestedCd(const std::string &requestedCd) {
-  _requestedCd_ = requestedCd;
-}
-
-
-void TabBrowser::sortEntries(std::vector<DirEntry>& entryList_){
-  GenericToolbox::sortVector( entryList_, [](const DirEntry &a_, const DirEntry &b_) {
-    if( a_.isDir and not b_.isDir ) return true;
-    if( not a_.isDir and b_.isDir ) return false;
-    if( a_.name.empty() ) return false;
-    if( b_.name.empty() ) return true;
-    if( a_.name[0] != '.' and b_.name[0] == '.') return true;
-    if( b_.name[0] != '.' and a_.name[0] == '.') return false;
-    return GenericToolbox::toLowerCase(a_.name) < GenericToolbox::toLowerCase(b_.name);
-  });
-}
-

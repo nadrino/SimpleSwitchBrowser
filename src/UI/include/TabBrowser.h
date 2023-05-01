@@ -28,11 +28,10 @@ public:
   explicit TabBrowser(FrameMain* owner_);
   ~TabBrowser() override;
 
+  // setters
   void setRequestedCd(const std::string &requestedCd);
 
-  void cd( const std::string& folder_ );
-  void ls();
-
+  // getters
   [[nodiscard]] std::string getCwd() const;
 
   // overrides
@@ -41,8 +40,14 @@ public:
   // statics
   static void sortEntries(std::vector<DirEntry>& entryList_);
 
+protected:
+  void cd( const std::string& folder_ );
+  void ls();
+
 private:
   FrameMain* _owner_;
+
+  bool _requestScroll_{false};
 
   std::mutex _mutex_;
   std::string _requestedCd_;
