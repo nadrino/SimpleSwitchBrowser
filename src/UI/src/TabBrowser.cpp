@@ -285,56 +285,81 @@ bool TabBrowser::removeFolderFct( const std::string& folderPath_ ){
     _loadingBox_.getLoadingView()->setProgressFractionPtr(&progressFraction);
   }
 
-  progressFileTitle = "Listing files...";
-  LogInfo << "Listing files..." << std::endl;
-  auto fileList = GenericToolbox::getListOfFilesInSubFolders(folderPath_);
-  LogTrace << "Will remove " << fileList.size() << " files" << std::endl;
 
-  auto maxDeleteDepth = GenericToolbox::splitString(folderPath_, "/").size();
+  LogTrace << "test..." << std::endl;
+  int nFiles = std::distance(std::filesystem::directory_iterator(folderPath_), std::filesystem::directory_iterator{});
+  LogTrace << nFiles << " files will be deleted." << std::endl;
 
-  int iFile=0;
-  for(auto &file : fileList){
-    iFile++;
-
+  int iFile{0};
+  for( const auto& entry : std::filesystem::directory_iterator(folderPath_) ) {
     if( _loadingBox_.getLoadingBox() != brls::Application::getTopStackView() ){
+      brls::Application::blockInputs();
       LogWarning << "Delete has been canceled" << std::endl;
-      break;
+//      _loadingBox_.getLoadingView()->reset();
+//      _loadingBox_.popView();
+      brls::Application::unblockInputs();
+      return true;
     }
 
-    std::string fullPathFile = GenericToolbox::joinPath(folderPath_, file);
-    LogDebug << "rm " << fullPathFile << std::endl;
-    GenericToolbox::removeRepeatedCharInsideInputStr(fullPathFile, "/");
-    progressFileTitle = GenericToolbox::getFileNameFromFilePath(file) + " (" +
-                        GenericToolbox::parseSizeUnits(double(GenericToolbox::getFileSize(fullPathFile))) + ")";
-    progressFraction = (iFile + 1.) / double(fileList.size());
-
-    // Remove the mod file
-    GenericToolbox::deleteFile(fullPathFile);
-
-    // Delete the folder if no other files is present
-    std::string parentFolderPath = GenericToolbox::getFolderPathFromFilePath(fullPathFile );
-    while( GenericToolbox::isFolderEmpty( parentFolderPath ) ) {
-
-      GenericToolbox::deleteEmptyDirectory( parentFolderPath );
-
-      std::vector<std::string> subFolderList = GenericToolbox::splitString(parentFolderPath, "/");
-      if(subFolderList.empty()) break; // virtually impossible -> would mean everything has been deleted on the sd
-      // decrement folder depth
-      parentFolderPath =
-          "/" + GenericToolbox::joinVectorString(
-              subFolderList,
-              "/",
-              0,
-              int(subFolderList.size()) - 1
-          );
-
-      if( subFolderList.size() < maxDeleteDepth ) break;
-    }
+    LogTrace << "rm " << GenericToolbox::getFileNameFromFilePath(entry.path().string()) << std::endl;
+    progressFileTitle = entry.path().filename().string()
+        + " (" + std::to_string(iFile+1) + "/" + std::to_string(nFiles) + ")"
+        ;
+    progressFraction = (iFile++ + 1.) / double(nFiles);
+    std::filesystem::remove_all(entry.path());
   }
+  std::filesystem::remove(folderPath_);
 
-  if( fileList.empty() ){
-    GenericToolbox::deleteEmptyDirectory( folderPath_ );
-  }
+//  progressFileTitle = "Listing files...";
+//  LogInfo << "Listing files..." << std::endl;
+//  auto fileList = GenericToolbox::getListOfFilesInSubFolders(folderPath_);
+//  LogTrace << "Will remove " << fileList.size() << " files" << std::endl;
+//
+//  int iFile=0;
+//  for(auto &file : fileList){
+//    iFile++;
+//
+//    if( _loadingBox_.getLoadingBox() != brls::Application::getTopStackView() ){
+//      LogWarning << "Delete has been canceled" << std::endl;
+//      _loadingBox_.getLoadingView()->reset();
+//      _loadingBox_.popView();
+//      brls::Application::unblockInputs();
+//      return true;
+//    }
+//
+//    std::string fullPathFile = GenericToolbox::joinPath(folderPath_, file);
+//    LogDebug << "rm " << fullPathFile << std::endl;
+//    GenericToolbox::removeRepeatedCharInsideInputStr(fullPathFile, "/");
+//    progressFileTitle = GenericToolbox::getFileNameFromFilePath(file) + " (" +
+//                        GenericToolbox::parseSizeUnits(double(GenericToolbox::getFileSize(fullPathFile))) + ")";
+//    progressFraction = (iFile + 1.) / double(fileList.size());
+//
+//    // Remove the mod file
+//    GenericToolbox::deleteFile(fullPathFile);
+//  }
+//
+//  // if still on focus
+//  if( _loadingBox_.getLoadingBox() == brls::Application::getTopStackView() ){
+//    progressFileTitle = "Cleaning up empty folders...";
+//    auto folderList = GenericToolbox::getListOfFoldersInSubFolders(folderPath_);
+//    for( auto& folder : folderList ){
+//
+//      if( _loadingBox_.getLoadingBox() != brls::Application::getTopStackView() ){
+//        LogWarning << "Delete has been canceled" << std::endl;
+//        _loadingBox_.getLoadingView()->reset();
+//        _loadingBox_.popView();
+//        brls::Application::unblockInputs();
+//        return true;
+//      }
+//
+//      auto fullPath = GenericToolbox::joinPath(folderPath_, folder);
+//      LogTrace << GET_VAR_NAME_VALUE(fullPath) << std::endl;
+//      if( GenericToolbox::isFolderEmpty( fullPath ) ){
+//        LogTrace << "isFolderEmpty" << std::endl;
+//        GenericToolbox::deleteEmptyDirectory( fullPath );
+//      }
+//    }
+//  }
 
   _loadingBox_.getLoadingView()->reset();
   _loadingBox_.popView();
@@ -364,9 +389,6 @@ brls::Image* TabBrowser::getIcon( const std::string& filePath_ ){
       memset(icon, 0, iconSize);
       fseek(file, header.size + asset_header.icon.offset, SEEK_SET);
       fread(icon, iconSize, 1, file);
-
-      LogDebug << "Caching New Icon: " << filePath_ << std::endl;;
-
       image = new brls::Image(icon, iconSize);
     }
     else{ image = new brls::Image("romfs:/images/unknown.png"); }
