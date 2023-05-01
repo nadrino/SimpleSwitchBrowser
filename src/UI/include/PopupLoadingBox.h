@@ -17,6 +17,7 @@ public:
   PopupLoadingBox() = default;
 
   [[nodiscard]] PopupLoadingView *getLoadingView() const;
+  [[nodiscard]] brls::Dialog *getLoadingBox() const;
 
   void pushView();
   void popView();

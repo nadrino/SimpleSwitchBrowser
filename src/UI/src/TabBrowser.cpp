@@ -199,6 +199,30 @@ void TabBrowser::ls(){
         dialog->open();
         return true;
       });
+
+      if( GenericToolbox::getFileExtension(entry.name) == "nro" ){
+
+        entry.item->getClickEvent()->subscribe([filePath](brls::View*){
+          auto *dialog = new brls::Dialog("Do you want to load \"" + filePath + "\" ?");
+
+          dialog->addButton("Yes", [filePath, dialog](brls::View *view) {
+            LogInfo << "Launching " << filePath << std::endl;
+            envSetNextLoad(filePath.c_str(), filePath.c_str());
+            brls::Application::quit();
+            dialog->close();
+          });
+          dialog->addButton("No", [dialog](brls::View *view) {
+            dialog->close();
+          });
+
+          dialog->setCancelable(true);
+          dialog->open();
+
+          return true;
+        });
+        entry.item->updateActionHint(brls::Key::A, "Load");
+      }
+
     }
     else if( entry.type == EMPTY ){
       entry.item->setValue("empty folder");
@@ -222,19 +246,23 @@ bool TabBrowser::removeFolderFct( const std::string& folderPath_ ){
   // push the progress bar to the view
   _loadingBox_.pushView();
 
+  std::string progressFileTitle;
+  double progressFraction;
+
   LogAlert << "Removing: " << folderPath_ << std::endl;
   if( _loadingBox_.getLoadingView() != nullptr ){
     _loadingBox_.getLoadingView()->reset();
     _loadingBox_.getLoadingView()->setHeader("Removing folder...");
     _loadingBox_.getLoadingView()->setProgressColor(nvgRGB(0xff, 0x64, 0x64));
     _loadingBox_.getLoadingView()->setTitlePtr(&folderPath_);
-    _loadingBox_.getLoadingView()->setSubTitlePtr(&GenericToolbox::Switch::Utils::b.strMap["ext_mod_manager::removeMod:current_file"]);
-    _loadingBox_.getLoadingView()->setProgressFractionPtr(&GenericToolbox::Switch::Utils::b.progressMap["ext_mod_manager::removeMod"]);
+    _loadingBox_.getLoadingView()->setSubTitlePtr(&progressFileTitle);
+    _loadingBox_.getLoadingView()->setProgressFractionPtr(&progressFraction);
   }
 
-  GenericToolbox::Switch::Utils::b.strMap["ext_mod_manager::removeMod:current_file"] = "Listing files...";
+  progressFileTitle = "Listing files...";
+  LogInfo << "Listing files..." << std::endl;
   auto fileList = GenericToolbox::getListOfFilesInSubFolders(folderPath_);
-  LogTrace << "rm " << fileList.size() << " files" << std::endl;
+  LogTrace << "Will remove " << fileList.size() << " files" << std::endl;
 
   auto maxDeleteDepth = GenericToolbox::splitString(folderPath_, "/").size();
 
@@ -242,13 +270,17 @@ bool TabBrowser::removeFolderFct( const std::string& folderPath_ ){
   for(auto &file : fileList){
     iFile++;
 
+    if( _loadingBox_.getLoadingBox() != brls::Application::getTopStackView() ){
+      LogWarning << "Delete has been canceled" << std::endl;
+      break;
+    }
+
     std::string fullPathFile = GenericToolbox::joinPath(folderPath_, file);
-    LogTrace << "rm " << fullPathFile << std::endl;
+    LogDebug << "rm " << fullPathFile << std::endl;
     GenericToolbox::removeRepeatedCharInsideInputStr(fullPathFile, "/");
-    GenericToolbox::Switch::Utils::b.strMap["ext_mod_manager::removeMod:current_file"] =
-        GenericToolbox::getFileNameFromFilePath(file) + " (" +
-        GenericToolbox::parseSizeUnits(double(GenericToolbox::getFileSize(fullPathFile))) + ")";
-    GenericToolbox::Switch::Utils::b.progressMap["ext_mod_manager::removeMod"] = (iFile + 1.) / double(fileList.size());
+    progressFileTitle = GenericToolbox::getFileNameFromFilePath(file) + " (" +
+                        GenericToolbox::parseSizeUnits(double(GenericToolbox::getFileSize(fullPathFile))) + ")";
+    progressFraction = (iFile + 1.) / double(fileList.size());
 
     // Remove the mod file
     GenericToolbox::deleteFile(fullPathFile);

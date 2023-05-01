@@ -22,7 +22,7 @@ void PopupLoadingBox::pushView(){
   _loadingBox_ = new brls::Dialog( _loadingView_ );
 
   // make sure the user don't cancel while unfinished
-  _loadingBox_->setCancelable( false );
+  _loadingBox_->setCancelable( true );
 
   while( brls::Application::hasViewDisappearing() ){
     // wait for one extra frame before push
@@ -47,4 +47,8 @@ void PopupLoadingBox::popView(){
 
 PopupLoadingView *PopupLoadingBox::getLoadingView() const {
   return _loadingView_;
+}
+
+brls::Dialog *PopupLoadingBox::getLoadingBox() const {
+  return _loadingBox_;
 }

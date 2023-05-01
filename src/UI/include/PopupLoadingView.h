@@ -31,8 +31,6 @@ public:
 
   void draw(NVGcontext* vg, int x, int y, unsigned width, unsigned height, brls::Style* style, brls::FrameContext* ctx) override;
 
-
-
 private:
   bool _enableSubLoadingBar_;
 
