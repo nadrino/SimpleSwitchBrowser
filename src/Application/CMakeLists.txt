@@ -53,5 +53,5 @@ add_custom_command(
 
 build_switch_binaries(
     ${GUI_APP}.elf
-    ${GUI_TITLE} ${GUI_AUTHOR} ${GUI_ICON} "1.0.0" ${BUILD_ROMFS}
+    ${GUI_TITLE} ${GUI_AUTHOR} ${GUI_ICON} ${VERSION_STRING} ${BUILD_ROMFS}
 )
