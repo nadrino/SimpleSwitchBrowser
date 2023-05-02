@@ -200,7 +200,6 @@ void TabBrowser::ls(){
 
       if( entry.size != -1 ){ entry.item->setValue( GenericToolbox::parseSizeUnits( entry.size ) ); }
 
-
       std::string filePath{entry.fullPath};
       entry.item->registerAction("Delete", brls::Key::X, [this, filePath]{
 
@@ -269,6 +268,12 @@ void TabBrowser::ls(){
         entry.item->setHeight( 75 );
 
       }
+      if( GenericToolbox::getFileExtension(entry.name) == "nsp" ){
+        // not working
+        brls::Image *icon = TabBrowser::getIcon( filePath );
+        entry.item->setThumbnail( icon );
+        entry.item->setHeight( 75 );
+      }
 
     }
     else if( entry.type == EMPTY ){
@@ -306,31 +311,26 @@ bool TabBrowser::removeFolderFct( const std::string& folderPath_ ){
     _loadingBox_.getLoadingView()->setProgressFractionPtr(&progressFraction);
   }
 
-
-  LogTrace << "test..." << std::endl;
   int nFiles = std::distance(std::filesystem::directory_iterator(folderPath_), std::filesystem::directory_iterator{});
   LogTrace << nFiles << " files will be deleted." << std::endl;
 
   int iFile{0};
   for( const auto& entry : std::filesystem::directory_iterator(folderPath_) ) {
     if( _loadingBox_.getLoadingBox() != brls::Application::getTopStackView() ){
-      brls::Application::blockInputs();
       LogWarning << "Delete has been canceled" << std::endl;
-//      _loadingBox_.getLoadingView()->reset();
-//      _loadingBox_.popView();
       brls::Application::unblockInputs();
       return true;
     }
 
-    LogTrace << "rm " << GenericToolbox::getFileNameFromFilePath(entry.path().string()) << std::endl;
+    LogTrace << "rm " << entry.path().string() << std::endl;
     progressFileTitle = entry.path().filename().string()
         + " (" + std::to_string(iFile+1) + "/" + std::to_string(nFiles) + ")"
         ;
     progressFraction = (iFile++ + 1.) / double(nFiles);
 
-    std::filesystem::remove(entry.path());
+    std::filesystem::remove( entry.path() );
   }
-  std::filesystem::remove(folderPath_);
+  std::filesystem::remove( folderPath_ );
 
   _loadingBox_.getLoadingView()->reset();
   _loadingBox_.popView();
