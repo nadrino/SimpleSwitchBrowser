@@ -311,26 +311,54 @@ bool TabBrowser::removeFolderFct( const std::string& folderPath_ ){
     _loadingBox_.getLoadingView()->setProgressFractionPtr(&progressFraction);
   }
 
-  int nFiles = std::distance(std::filesystem::directory_iterator(folderPath_), std::filesystem::directory_iterator{});
-  LogTrace << nFiles << " files will be deleted." << std::endl;
-
+  LogInfo << "Listing files..." << std::endl;
+  progressFileTitle = "Listing files...";
+  auto fileList = GenericToolbox::getListOfFilesInSubFolders(folderPath_ );
   int iFile{0};
-  for( const auto& entry : std::filesystem::directory_iterator(folderPath_) ) {
+  for( auto& entry : fileList ){
+    iFile++;
+
     if( _loadingBox_.getLoadingBox() != brls::Application::getTopStackView() ){
       LogWarning << "Delete has been canceled" << std::endl;
       brls::Application::unblockInputs();
       return true;
     }
 
-    LogTrace << "rm " << entry.path().string() << std::endl;
-    progressFileTitle = entry.path().filename().string()
-        + " (" + std::to_string(iFile+1) + "/" + std::to_string(nFiles) + ")"
-        ;
-    progressFraction = (iFile++ + 1.) / double(nFiles);
+    auto fullPath = GenericToolbox::joinPath(folderPath_, entry);
 
-    std::filesystem::remove( entry.path() );
+    LogTrace << "rm " << fullPath << std::endl;
+    progressFileTitle = entry
+                        + " (" + std::to_string(iFile+1) + "/" + std::to_string(fileList.size()) + ")"
+        ;
+    progressFraction = (iFile + 1.) / double(fileList.size());
+
+    GenericToolbox::deleteFile( fullPath );
   }
-  std::filesystem::remove( folderPath_ );
+
+  LogInfo << "Listing leftover folders..." << std::endl;
+  progressFileTitle = "Listing leftover folders...";
+  auto folderList = GenericToolbox::getListOfFoldersInSubFolders(folderPath_ );
+  for( auto& folder : folderList ){
+    iFile++;
+
+    if( _loadingBox_.getLoadingBox() != brls::Application::getTopStackView() ){
+      LogWarning << "Delete has been canceled" << std::endl;
+      brls::Application::unblockInputs();
+      return true;
+    }
+
+    auto fullPath = GenericToolbox::joinPath(folderPath_, folder);
+
+    LogTrace << "rm " << fullPath << std::endl;
+    progressFileTitle = folder
+                        + " (" + std::to_string(iFile+1) + "/" + std::to_string(fileList.size()) + ")"
+        ;
+    progressFraction = (iFile + 1.) / double(fileList.size());
+
+    GenericToolbox::deleteEmptyDirectory( fullPath );
+  }
+  GenericToolbox::deleteEmptyDirectory( folderPath_ );
+
 
   _loadingBox_.getLoadingView()->reset();
   _loadingBox_.popView();
