@@ -112,8 +112,7 @@ void TabBrowser::ls(){
     _entryList_.emplace_back();
 
     _entryList_.back().name = folder;
-    if( cwd == "/" ) _entryList_.back().fullPath = GenericToolbox::joinPath("", folder);
-    else _entryList_.back().fullPath = GenericToolbox::joinPath(cwd, folder);
+    _entryList_.back().fullPath = GenericToolbox::joinPath(cwd, folder);
     _entryList_.back().type = IS_DIR;
   }
 
@@ -125,11 +124,11 @@ void TabBrowser::ls(){
     _entryList_.emplace_back();
 
     _entryList_.back().name = file;
-    if( cwd == "/" ) _entryList_.back().fullPath = GenericToolbox::joinPath("", file);
-    else _entryList_.back().fullPath = GenericToolbox::joinPath(cwd, file);
+    _entryList_.back().fullPath = GenericToolbox::joinPath(cwd, file);
     _entryList_.back().type = IS_FILE;
     if( fileList.size() < 256 ){
       // if too many files it takes too much time
+      LogTrace << "Checking size of " << _entryList_.back().fullPath << std::endl;
       _entryList_.back().size = double( GenericToolbox::getFileSize( _entryList_.back().fullPath ) );
     }
   }
