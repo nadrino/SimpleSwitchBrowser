@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.5)
 
 project( SimpleSwitchBrowser )
 
@@ -8,6 +8,8 @@ set( CMAKE_CXX_STANDARD 17 )
 list( APPEND CMAKE_MODULE_PATH
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake
 )
+
+set( CMAKE_TOOLCHAIN_FILE ${CMAKE_CURRENT_SOURCE_DIR}/cmake/devkita64-libnx.cmake )
 
 include(utils)
 include(options)

@@ -19,21 +19,16 @@ TabBrowser::TabBrowser(FrameMain* owner_) : brls::List(), _owner_(owner_) {
   LogWarning << "Building TabBrowser" << std::endl;
 
   // root
-  this->cd("");
+  this->cd();
   this->ls();
-
 }
 TabBrowser::~TabBrowser() {
   // make sure brls don't try to delete already deleted ptrs
   this->clear( false );
 }
 
-void TabBrowser::setRequestedCd(const std::string &requestedCd) {
-  _requestedCd_ = requestedCd;
-}
-
 std::string TabBrowser::getCwd() const{
-  return "/" + GenericToolbox::joinVectorString(_walkPath_, "/");
+  return GenericToolbox::joinVectorString(_walkPath_, "/").insert(0, "/");
 }
 
 void TabBrowser::draw(NVGcontext *vg, int x, int y, unsigned int width, unsigned int height, brls::Style *style,
@@ -105,38 +100,38 @@ void TabBrowser::ls(){
 
 
   LogInfo << "Listing folders in " << cwd << std::endl;
-  auto foldersList = GenericToolbox::getListOfSubFoldersInFolder( cwd );
+  auto foldersList = GenericToolbox::lsDirs( cwd );
   LogWarning << "Found " << foldersList.size() << " folders." << std::endl;
   _entryList_.reserve( _entryList_.size() + foldersList.size() );
   for (auto &folder: foldersList) {
-    _entryList_.emplace_back();
+    auto& entry = _entryList_.emplace_back();
 
-    _entryList_.back().name = folder;
-    _entryList_.back().fullPath = GenericToolbox::joinPath(cwd, folder);
-    _entryList_.back().type = IS_DIR;
+    entry.name = folder;
+    entry.fullPath = GenericToolbox::joinPath(cwd, folder);
+    entry.type = EntryType::IS_DIR;
   }
 
   LogInfo << "Listing files in " << cwd << std::endl;
-  auto fileList = GenericToolbox::getListOfFilesInFolder( cwd );
+  auto fileList = GenericToolbox::lsFiles( cwd );
   LogWarning << "Found " << fileList.size() << " files." << std::endl;
   _entryList_.reserve( _entryList_.size() + fileList.size() );
   for (auto &file: fileList) {
-    _entryList_.emplace_back();
+    auto& entry = _entryList_.emplace_back();
 
-    _entryList_.back().name = file;
-    _entryList_.back().fullPath = GenericToolbox::joinPath(cwd, file);
-    _entryList_.back().type = IS_FILE;
+    entry.name = file;
+    entry.fullPath = GenericToolbox::joinPath(cwd, file);
+    entry.type = EntryType::IS_FILE;
     if( fileList.size() < 256 ){
       // if too many files it takes too much time
-      LogTrace << "Checking size of " << _entryList_.back().fullPath << std::endl;
-      _entryList_.back().size = double( GenericToolbox::getFileSize( _entryList_.back().fullPath ) );
+      LogTrace << "Checking size of " << entry.fullPath << std::endl;
+      entry.size = double( GenericToolbox::getFileSize( entry.fullPath ) );
     }
   }
 
   // case of IO error or empty
   if( _entryList_.empty() ){
     _entryList_.emplace_back();
-    _entryList_.back().type = EMPTY;
+    _entryList_.back().type = EntryType::EMPTY;
   }
 
   LogInfo << "Sorting entries..." << std::endl;
@@ -158,7 +153,7 @@ void TabBrowser::ls(){
       });
     }
 
-    if     ( entry.type == IS_DIR ){
+    if     ( entry.type == EntryType::IS_DIR ){
       entry.item->setLabel( GenericToolbox::joinAsString(" ", "\uE2C7", entry.name) );
 
       auto folder{entry.name};
@@ -194,7 +189,7 @@ void TabBrowser::ls(){
       }
 
     }
-    else if( entry.type == IS_FILE ){
+    else if( entry.type == EntryType::IS_FILE ){
       entry.item->setLabel( entry.name );
 
       if( entry.size != -1 ){ entry.item->setValue( GenericToolbox::parseSizeUnits( entry.size ) ); }
@@ -207,7 +202,7 @@ void TabBrowser::ls(){
           dialog->close();
           LogAlert << "Deleting: " << filePath << std::endl;
 
-          if( not GenericToolbox::deleteFile( filePath ) ){
+          if( not GenericToolbox::rm( filePath ) ){
             LogError << "Could not delete: " << std::strerror(errno) << std::endl;
 
             auto* dialogFail = new brls::Dialog("Fail to remove \"" + filePath + "\" with error: " + std::strerror(errno));
@@ -240,7 +235,7 @@ void TabBrowser::ls(){
       });
 
       // option to exec
-      if( GenericToolbox::getFileExtension(entry.name) == "nro" ){
+      if( GenericToolbox::getExtension(entry.name) == "nro" ){
 
         entry.item->getClickEvent()->subscribe([filePath](brls::View*){
           auto *dialog = new brls::Dialog("Do you want to load \"" + filePath + "\" ?");
@@ -267,7 +262,7 @@ void TabBrowser::ls(){
         entry.item->setHeight( 75 );
 
       }
-      if( GenericToolbox::getFileExtension(entry.name) == "nsp" ){
+      if( GenericToolbox::getExtension(entry.name) == "nsp" ){
         // not working
         brls::Image *icon = TabBrowser::getIcon( filePath );
         entry.item->setThumbnail( icon );
@@ -275,7 +270,7 @@ void TabBrowser::ls(){
       }
 
     }
-    else if( entry.type == EMPTY ){
+    else if( entry.type == EntryType::EMPTY ){
       entry.item->setValue("empty folder");
     }
 
@@ -301,23 +296,21 @@ bool TabBrowser::removeFolderFct( const std::string& folderPath_ ){
   double progressFraction;
 
   LogAlert << "Removing: " << folderPath_ << std::endl;
-  if( _loadingBox_.getLoadingView() != nullptr ){
-    _loadingBox_.getLoadingView()->reset();
-    _loadingBox_.getLoadingView()->setHeader("Removing folder...");
-    _loadingBox_.getLoadingView()->setProgressColor(nvgRGB(0xff, 0x64, 0x64));
-    _loadingBox_.getLoadingView()->setTitlePtr(&folderPath_);
-    _loadingBox_.getLoadingView()->setSubTitlePtr(&progressFileTitle);
-    _loadingBox_.getLoadingView()->setProgressFractionPtr(&progressFraction);
-  }
+  _loadingBox_.getMonitorView()->setHeaderTitle("Removing folder...");
+  _loadingBox_.getMonitorView()->setProgressColor(nvgRGB(0xff, 0x64, 0x64));
+  _loadingBox_.getMonitorView()->resetMonitorAddresses();
+  _loadingBox_.getMonitorView()->setTitlePtr( &folderPath_ );
+  _loadingBox_.getMonitorView()->setSubTitlePtr( &progressFileTitle );
+  _loadingBox_.getMonitorView()->setProgressFractionPtr( &progressFraction );
 
   LogInfo << "Listing files..." << std::endl;
   progressFileTitle = "Listing files...";
-  auto fileList = GenericToolbox::getListOfFilesInSubFolders(folderPath_ );
+  auto fileList = GenericToolbox::lsFilesRecursive( folderPath_ );
   int iFile{0};
   for( auto& entry : fileList ){
     iFile++;
 
-    if( _loadingBox_.getLoadingBox() != brls::Application::getTopStackView() ){
+    if( not _loadingBox_.isOnTopView() ){
       LogWarning << "Delete has been canceled" << std::endl;
       brls::Application::unblockInputs();
       return true;
@@ -326,21 +319,20 @@ bool TabBrowser::removeFolderFct( const std::string& folderPath_ ){
     auto fullPath = GenericToolbox::joinPath(folderPath_, entry);
 
     LogTrace << "rm " << fullPath << std::endl;
-    progressFileTitle = entry
-                        + " (" + std::to_string(iFile+1) + "/" + std::to_string(fileList.size()) + ")"
-        ;
+    progressFileTitle = entry;
+    progressFileTitle += " (" + GenericToolbox::joinAsString("/", iFile+1, fileList.size()) + ")";
     progressFraction = (iFile + 1.) / double(fileList.size());
 
-    GenericToolbox::deleteFile( fullPath );
+    GenericToolbox::rm( fullPath );
   }
 
   LogInfo << "Listing leftover folders..." << std::endl;
   progressFileTitle = "Listing leftover folders...";
-  auto folderList = GenericToolbox::getListOfFoldersInSubFolders(folderPath_ );
+  auto folderList = GenericToolbox::lsDirsRecursive( folderPath_ );
   for( auto& folder : folderList ){
     iFile++;
 
-    if( _loadingBox_.getLoadingBox() != brls::Application::getTopStackView() ){
+    if( not _loadingBox_.isOnTopView() ){
       LogWarning << "Delete has been canceled" << std::endl;
       brls::Application::unblockInputs();
       return true;
@@ -354,12 +346,11 @@ bool TabBrowser::removeFolderFct( const std::string& folderPath_ ){
         ;
     progressFraction = (iFile + 1.) / double(fileList.size());
 
-    GenericToolbox::deleteEmptyDirectory( fullPath );
+    GenericToolbox::rmDir( fullPath );
   }
-  GenericToolbox::deleteEmptyDirectory( folderPath_ );
+  GenericToolbox::rmDir( folderPath_ );
 
 
-  _loadingBox_.getLoadingView()->reset();
   _loadingBox_.popView();
   brls::Application::unblockInputs();
   std::scoped_lock<std::mutex> g(_mutex_);

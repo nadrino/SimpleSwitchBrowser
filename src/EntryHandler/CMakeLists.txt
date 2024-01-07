@@ -1,10 +1,12 @@
 
 
-set( LIB_NAME "UI" )
+set( LIB_NAME "EntryHandler" )
 set( SRC_FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/FrameMain.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/TabBrowser.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/TabAbout.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/EntryContainer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Dummy.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Folder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/File.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/EntryFactory.cpp
     )
 
 add_library( ${LIB_NAME} STATIC ${SRC_FILES} )
@@ -15,7 +17,6 @@ target_include_directories( ${LIB_NAME} PUBLIC
     )
 
 target_link_libraries( ${LIB_NAME} PUBLIC
-#    EntryHandler
     Borealis
     switch::libnx
     -L/opt/devkitpro/portlibs/switch/lib

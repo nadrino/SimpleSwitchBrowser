@@ -5,9 +5,8 @@
 #ifndef SIMPLESWITCHBROWSER_TABBROWSER_H
 #define SIMPLESWITCHBROWSER_TABBROWSER_H
 
-#include "PopupLoadingBox.h"
 
-#include "GenericToolbox.h"
+#include "GenericToolbox.Switch.Borealis.h"
 
 #include "borealis.hpp"
 
@@ -18,24 +17,25 @@
 #include "future"
 
 
-ENUM_EXPANDER(
-    EntryType, -1,
-    UNSET,
-    IS_DIR,
-    IS_FILE,
-    EMPTY
-);
+#define MAKE_ENUM \
+  ENUM_NAME(EntryType) \
+  ENUM_ENTRY(UNSET, -1) \
+  ENUM_ENTRY(IS_DIR) \
+  ENUM_ENTRY(IS_FILE) \
+  ENUM_ENTRY(EMPTY)
+#include "GenericToolbox.MakeEnum.h"
+#undef MAKE_ENUM
 
 struct DirEntry {
   std::string name{};
   std::string fullPath{};
 
-  EntryType type{UNSET};
+  EntryType type{EntryType::UNSET};
   double size{-1};
 
   std::shared_ptr<brls::ListItem> item{nullptr};
 
-  [[nodiscard]] bool isDir() const { return type == IS_DIR; }
+  [[nodiscard]] bool isDir() const { return type == EntryType::IS_DIR; }
 };
 
 class FrameMain;
@@ -47,7 +47,7 @@ public:
   ~TabBrowser() override;
 
   // setters
-  void setRequestedCd(const std::string &requestedCd);
+  void setRequestedCd(const std::string &requestedCd_){ _requestedCd_ = requestedCd_; }
 
   // getters
   [[nodiscard]] std::string getCwd() const;
@@ -60,7 +60,7 @@ public:
   static brls::Image* getIcon( const std::string& filePath_ );
 
 protected:
-  void cd( const std::string& folder_ );
+  void cd( const std::string& folder_ = "" );
   void ls();
 
   bool removeFolderFct( const std::string& folderPath_ );
@@ -79,7 +79,7 @@ private:
   std::vector<DirEntry> _entryList_;
 
   std::future<bool> _asyncResponse_{};
-  PopupLoadingBox _loadingBox_{};
+  GenericToolbox::Switch::Borealis::PopupLoadingBox _loadingBox_{};
 
 };
 

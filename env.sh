@@ -1,6 +1,6 @@
 #! /bin/bash
 
-function setup_devkitpro() {
+function setup_devkitpro(){
     echo "Seting up DevKitPro..." >&2
     export DEVKITPRO=/opt/devkitpro
     export DEVKITA64=${DEVKITPRO}/devkitA64
