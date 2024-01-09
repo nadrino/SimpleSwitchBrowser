@@ -1,6 +1,7 @@
 # Ignored files
 external
 cmake-build-release
+cmake-build-debug
 build
 
 # Don't track IDE caches

@@ -6,7 +6,7 @@
 #include "FrameMain.h"
 
 #include "Logger.h"
-#include "GenericToolbox.h"
+#include "GenericToolbox.Vector.h"
 #include "GenericToolbox.Switch.h"
 #include <switch.h>
 
@@ -360,11 +360,10 @@ bool TabBrowser::removeFolderFct( const std::string& folderPath_ ){
 }
 
 brls::Image* TabBrowser::getIcon( const std::string& filePath_ ){
-  brls::Image *image = nullptr;
+  brls::Image *image{nullptr};
 
   FILE *file = fopen(filePath_.c_str(), "rb");
-  if (file)
-  {
+  if( file ){
     fseek(file, sizeof(NroStart), SEEK_SET);
     NroHeader header;
     fread(&header, sizeof(header), 1, file);
@@ -386,8 +385,7 @@ brls::Image* TabBrowser::getIcon( const std::string& filePath_ ){
     free(icon);
     icon = nullptr;
   }
-  else
-  {
+  else {
     LogDebug << "Using Unknown Icon For: " << filePath_ << std::endl;
     image = new brls::Image("romfs:/images/unknown.png");
   }

@@ -6,7 +6,7 @@
 #define SIMPLESWITCHBROWSER_TABBROWSER_H
 
 
-#include "GenericToolbox.Switch.Borealis.h"
+#include "GenericToolbox.Borealis.h"
 
 #include "borealis.hpp"
 
@@ -79,7 +79,7 @@ private:
   std::vector<DirEntry> _entryList_;
 
   std::future<bool> _asyncResponse_{};
-  GenericToolbox::Switch::Borealis::PopupLoadingBox _loadingBox_{};
+  GenericToolbox::Borealis::PopupLoadingBox _loadingBox_{};
 
 };
 
